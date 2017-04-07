@@ -23,23 +23,23 @@ setwd("~/Dropbox/Project4_WhoIsWho/doc")
 For each record in the dataset, there are some information we want to extract and store them in a regular form: canonical author id, coauthors, paper title, publication venue title. You may need to find regular matched in the input string vectors by using regex in R. Here is a tutorial for regular expression in R, which might help you <https://rstudio-pubs-static.s3.amazonaws.com/74603_76cd14d5983f47408fdf0b323550b846.html>
 
 ```{r}
-AKumar <- data.frame(scan("~/Dropbox/Project4_WhoIsWho/data/nameset/AKumar.txt",
-                          what = list(Coauthor = "", Paper = "", Journal = ""),
-                          sep=">", quiet=TRUE),stringsAsFactors=FALSE)
-# This need to be modified for different name set
-
-# extract canonical author id befor "_"
-AKumar$AuthorID <- sub("_.*","",AKumar$Coauthor)
-# extract paper number under same author between "_" and first whitespace
-AKumar$PaperNO <- sub(".*_(\\w*)\\s.*", "\\1", AKumar$Coauthor)
-# delete "<" in AKumar$Coauthor, you may need to further process the coauthor
-# term depending on the method you are using
-AKumar$Coauthor <- gsub("<","",sub("^.*?\\s","", AKumar$Coauthor))
-# delete "<" in AKumar$Paper
-AKumar$Paper <- gsub("<","",AKumar$Paper)
-# add PaperID for furthur use, you may want to combine all the nameset files and 
-# then assign the unique ID for all the citations
-AKumar$PaperID <- rownames(AKumar)
+# AKumar <- data.frame(scan("../data/nameset/AKumar.txt",
+#                           what = list(Coauthor = "", Paper = "", Journal = ""),
+#                           sep=">", quiet=TRUE), stringsAsFactors=FALSE)
+# # This need to be modified for different name set
+# 
+# # extract canonical author id before "_"
+# AKumar$AuthorID <- sub("_.*","",AKumar$Coauthor)
+# # extract paper number under same author between "_" and first whitespace
+# AKumar$PaperNO <- sub(".*_(\\w*)\\s.*", "\\1", AKumar$Coauthor)
+# # delete "<" in AKumar$Coauthor, you may need to further process the coauthor
+# # term depending on the method you are using
+# AKumar$Coauthor <- gsub("<","",sub("^.*?\\s","", AKumar$Coauthor))
+# # delete "<" in AKumar$Paper
+# AKumar$Paper <- gsub("<","",AKumar$Paper)
+# # add PaperID for furthur use, you may want to combine all the nameset files and 
+# # then assign the unique ID for all the citations
+# AKumar$PaperID <- rownames(AKumar)
 ```
 
 ## Step 2: Feature design
@@ -60,24 +60,73 @@ To compute TF-IDF, we first need to construct a document-term matrix (DTM). In o
 
 Let’s first create a vocabulary-based DTM. Here we collect unique terms from all documents and mark each of them with a unique ID using the  `create_vocabulary()` function. We use an iterator to create the vocabulary.
 ```{r}
-it_train <- itoken(AKumar$Paper, 
-             preprocessor = tolower, 
-             tokenizer = word_tokenizer,
-             ids = AKumar$PaperID,
-             # turn off progressbar because it won't look nice in rmd
-             progressbar = FALSE)
-vocab <- create_vocabulary(it_train, stopwords = c("a", "an", "the", "in", "on",
-                                                   "at", "of", "above", "under"))
-
-vocab
+# it_train <- itoken(AKumar$Paper, 
+#              preprocessor = tolower, 
+#              tokenizer = word_tokenizer,
+#              ids = AKumar$PaperID,
+#              # turn off progressbar because it won't look nice in rmd
+#              progressbar = FALSE)
+# vocab <- create_vocabulary(it_train, stopwords = c("a", "an", "the", "in", "on",
+#                                                    "at", "of", "above", "under"))
+# 
+# vocab
 ```
+
+
+** START HERE **
+
+```{r}
+load("../output/cleanedPapers.RData")
+
+data.lib="../data/nameset"
+data.files=list.files(path=data.lib, "*.txt")
+
+data.files
+
+## remove "*.txt"
+query.list=substring(data.files, 
+                     1, nchar(data.files)-4)
+
+query.list
+
+dtms <- list()
+for (file in 1:length(data_list)) {
+  a2 <- list()
+  for (i in 1:length(data_list[[file]])) {
+    a2 <- rbind(a2, data_list[[file]][[i]])
+  }
+  
+  a2 <- data.frame(a2)
+  a2 <- sapply(a2, unlist)
+  
+  it_train2 <- itoken(a2$paper_title, 
+               preprocessor = tolower, 
+               tokenizer = word_tokenizer,
+               ids = a2$paper_id,
+               # turn off progressbar because it won't look nice in rmd
+               progressbar = FALSE)
+  vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
+                                                     "at", "of", "above", "under"))
+  
+  vectorizer <- vocab_vectorizer(vocab2)
+  dtm_train <- create_dtm(it_train2, vectorizer)
+dtms <- c(dtms, c(name = query.list[file], vocab = dtm_train))
+}
+  
+
+```
+
+
+**END HERE**
+
+
 
 Here, we remove pre-defined stopwords, the words like “a”, “the”, “in”, “I”, “you”, “on”, etc, which do not provide much useful information. 
 
 Now that we have a vocabulary list, we can construct a document-term matrix.
 ```{r}
-vectorizer <- vocab_vectorizer(vocab)
-dtm_train <- create_dtm(it_train, vectorizer)
+vectorizer <- vocab_vectorizer(vocab2)
+dtm_train <- create_dtm(it_train2, vectorizer)
 ```
 
 Now we have DTM and can check its dimensions.
