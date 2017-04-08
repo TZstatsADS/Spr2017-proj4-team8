@@ -89,8 +89,8 @@ query.list=substring(data.files,
 
 query.list
 
-# dtm_list <- list()
-tfidf_list <- list()
+dtm_list <- list()
+# tfidf_list <- list()
 for (file in 1:length(data_list)) {
   a2 <- list()
   for (i in 1:length(data_list[[file]])) {
@@ -115,20 +115,66 @@ for (file in 1:length(data_list)) {
   vectorizer <- vocab_vectorizer(vocab2)
   dtm_train <- create_dtm(it_train2, vectorizer)
   
-  #dtm_i <- list(name = query.list[file], dtm = dtm_train)
-  # dtm_list[[file]]  <- dtm_i
-  
-  tfidf <- TfIdf$new()
-  dtm_train_tfidf <- fit_transform(dtm_train, tfidf)
-  tfidf_i <- list(name = query.list[file], dtm = dtm_train_tfidf)
-  tfidf_list[[file]] <- tfidf_i
+  dtm_i <- list(name = query.list[file], dtm = dtm_train)
+  dtm_list[[file]] <- dtm_i
 }
 
 ```
 
 
 **END HERE**
+Running LDA on dtm
+```{r}
+library("topicmodels")
+dtm<-dtm_list[[1]][[2]]
 
+# LDA parameters
+burnin <- 4000
+iter <- 1000
+thin <- 200
+seed <-list(2003,2,68,100001,765)
+nstart <- 5
+best <- TRUE
+delta=0.1
+alpha<-50/k
+
+# number of topics
+k <- 10
+
+# run lda on each name
+
+theta_list<-list(name=NULL,theta=NULL)
+phi_list<-list(name=NULL,phi=NULL)
+
+for (i in 1:length(query.list)){
+  dtm<-dtm_list[[i]][[2]]
+  rowTotals <- apply(dtm , 1, sum) 
+  dtm  <- dtm[rowTotals> 0, ]
+  # Run LDA using Gibbs sampling
+  ldaOut <-LDA(dtm, k, method="Gibbs",  control=list(nstart=nstart, 
+                                                   seed = seed,
+                                                   best=best,
+                                                   burnin = burnin,
+                                                   alpha=alpha,
+                                                   delta=delta,
+                                                   iter=iter,
+                                                   thin=thin))
+  # theta_dj; 
+  # Probabilities associated with each topic assignment for each record 
+  theta <- as.data.frame(ldaOut@gamma)
+  # phi_mj
+  # the probability of using word m in topic j
+  phi <- posterior(ldaOut)$terms
+
+  temp1<-list(name=query.list[i], theta=theta)
+  theta_list[[i]]<- temp1
+  temp2<-list(query.list[i], phi)
+  phi_list[[i]] <- temp2
+}
+
+save(theta,file="../output/theta.RData")
+save(phi,file="../output/phi.RData")
+```
 
 
 Here, we remove pre-defined stopwords, the words like “a”, “the”, “in”, “I”, “you”, “on”, etc, which do not provide much useful information. 
@@ -144,13 +190,6 @@ Now we have DTM and can check its dimensions.
 dim(dtm_train)
 ```
 
-As you can see, the DTM has `r nrow(dtm_train)` rows, equal to the number of citations, and `r ncol(dtm_train)`, equal to the number of unique terms excluding stopwords.
-
-Then, we want to use DTM to compute TF-IDF transformation on DTM.
-```{r}
-tfidf <- TfIdf$new()
-dtm_train_tfidf <- fit_transform(dtm_train, tfidf)
-```
 
 ## Step 3: Clustering
 
@@ -208,12 +247,5 @@ compare_df <- data.frame(method=c("sClust","hClust"),
                          accuracy=c(performance_sclust$accuracy, performance_hclust$accuracy),
                          time=c(time_sclust,time_hclust))
 kable(compare_df,caption="Comparision of performance for two clustering methods",digits = 2)
-```
-
-```{r}
-install.packages("lda")
-library("lda")
-
-
 ```
 
