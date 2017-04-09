@@ -83,6 +83,7 @@ f.line.proc=function(lin, nam.query="."){
   journal_name=lin.str[3] 
   
   list(author_id = author_id,
+       unique_paper_id = paste(nam.query, paper_id, sep = "_"),
        unique_author_id = paste(nam.query, author_id, sep = "_"),
        paper_id = paper_id, 
        coauthor_list = coauthor_list, 
@@ -106,8 +107,8 @@ for(i in 1:length(data.files)){
   data_list[[i]]=lapply(dat, f.line.proc, nam.query=query.list[i])
 }
 
-tfidf_list <- list()
-# dtm_list <- list()
+# tfidf_list <- list()
+dtm_list <- list()
 for (file in 1:length(data_list)) {
   a2 <- list()
   for (i in 1:length(data_list[[file]])) {
@@ -132,17 +133,17 @@ for (file in 1:length(data_list)) {
   vectorizer <- vocab_vectorizer(vocab2)
   dtm_train <- create_dtm(it_train2, vectorizer)
   
-  #dtm_i <- list(name = query.list[file], dtm = dtm_train)
-  # dtm_list[[file]]  <- dtm_i
+  dtm_i <- list(name = query.list[file], dtm = dtm_train)
+  dtm_list[[file]]  <- dtm_i
   
-  tfidf <- TfIdf$new()
-  dtm_train_tfidf <- fit_transform(dtm_train, tfidf)
-  tfidf_i <- list(name = query.list[file], tfidf = dtm_train_tfidf)
-  tfidf_list[[file]] <- tfidf_i
+  # tfidf <- TfIdf$new()
+  # dtm_train_tfidf <- fit_transform(dtm_train, tfidf)
+  # tfidf_i <- list(name = query.list[file], tfidf = dtm_train_tfidf)
+  # tfidf_list[[file]] <- tfidf_i
 }
 
-# save(tfidf_list, file = "../output/dtm_list.RData")
-save(tfidf_list, file = "../output/tfidf_list.RData")
+save(dtm_list, file = "../output/dtm_list.RData")
+# save(tfidf_list, file = "../output/tfidf_list.RData")
 ```
 
 ```{r}
@@ -164,37 +165,31 @@ data_list=lapply(dat, f.line.proc, nam.query=query.list[i])
 
 # tfidf_list_combined <- list()
 dtm_list_combined <- list()
-for (file in 1:length(data_list)) {
-  a2 <- list()
-  for (i in 1:length(data_list[[file]])) {
-    a2 <- rbind(a2, data_list[[file]][[i]])
+a2 <- list()
+for (line in 1:length(data_list)) {
+  a2 <- rbind(a2, data_list[[line]])
   }
   
-  a2 <- data.frame(a2)
-  a2 <- sapply(a2, unlist)
-  a2 <- data.frame(a2)
-  a2$combined <- as.character(a2$combined)
-  
-  it_train2 <- itoken(a2$combined, 
-               preprocessor = tolower, 
-               tokenizer = word_tokenizer,
-               ids = a2$paper_id,
-               # turn off progressbar because it won't look nice in rmd
-               progressbar = FALSE)
-  vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
+a2 <- data.frame(a2)
+a2 <- sapply(a2, unlist)
+a2 <- data.frame(a2)
+a2$combined <- as.character(a2$combined)
+
+it_train2 <- itoken(a2$combined, 
+                    preprocessor = tolower, 
+                    tokenizer = word_tokenizer,
+                    ids = a2$paper_id,
+                    # turn off progressbar because it won't look nice in rmd
+                    progressbar = FALSE)
+vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
                                                      "at", "of", "above", "under"))
-  
-  vectorizer <- vocab_vectorizer(vocab2)
-  dtm_train <- create_dtm(it_train2, vectorizer)
-  
-  dtm_i <- list(name = query.list[file], dtm = dtm_train)
-  dtm_list_combined[[file]]  <- dtm_i
-  
-  # tfidf <- TfIdf$new()
-  # dtm_train_tfidf <- fit_transform(dtm_train, tfidf)
-  # tfidf_i <- list(name = query.list[file], tfidf = dtm_train_tfidf)
-  # tfidf_list_combined[[file]] <- tfidf_i
-}
+
+vectorizer <- vocab_vectorizer(vocab2)
+dtm_list_combined <- create_dtm(it_train2, vectorizer)
+
+# tfidf <- TfIdf$new()
+# tfidf_list_combined <- fit_transform(dtm_list_combined, tfidf)
+
 
 save(dtm_list_combined, file = "../output/dtm_list_combined.RData")
 # save(tfidf_list_combined, file = "../output/tfidf_list_combined.RData")
