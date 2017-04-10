@@ -137,11 +137,11 @@ seed <-list(2003,2,68,100001,765)
 nstart <- 5
 best <- TRUE
 delta=0.1
-alpha<-50/k
+
 
 # number of topics
 k <- 10
-
+alpha<-50/k
 # run lda on each name
 
 theta_list<-list(name=NULL,theta=NULL)
@@ -178,7 +178,7 @@ load("../output/dtm_list_combined.RData")
 dtm_combined<-dtm_list_combined
 rowTotals <- apply(dtm_combined , 1, sum) 
 dtm_combined  <- dtm_combined[rowTotals> 0, ]
-  # Run LDA using Gibbs sampling
+# Run LDA using Gibbs sampling
 ldaOut_combined <-
   LDA(dtm_combined, k, method="Gibbs", control=list(nstart=nstart,
                                                    seed = seed,
@@ -194,6 +194,7 @@ theta_combined <- as.data.frame(ldaOut_combined@gamma)
   # phi_mj
   # the probability of using word m in topic j
 phi_combined <- posterior(ldaOut_combined)$terms
+
 save(theta_combined,file="../output/theta_combined.RData")
 save(phi_combined,file="../output/phi_combined.RData")
 
