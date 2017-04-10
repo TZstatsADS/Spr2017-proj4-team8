@@ -76,48 +76,48 @@ Let’s first create a vocabulary-based DTM. Here we collect unique terms from a
 ** START HERE **
 
 ```{r}
-load("../output/cleanedPapers.RData")
-
-data.lib="../data/nameset"
-data.files=list.files(path=data.lib, "*.txt")
-
-# data.files
-
-## remove "*.txt"
-query.list=substring(data.files, 
-                     1, nchar(data.files)-4)
-
-query.list
-
-dtm_list <- list()
-# tfidf_list <- list()
-for (file in 1:length(data_list)) {
-  a2 <- list()
-  for (i in 1:length(data_list[[file]])) {
-    a2 <- rbind(a2, data_list[[file]][[i]])
-  }
-  
-  a2 <- data.frame(a2)
-  a2 <- sapply(a2, unlist)
-  a2 <- data.frame(a2)
-  a2$combined <- as.character(a2$combined)
-  
-  it_train2 <- #itoken(paste(a2$paper_title, a2$coauthor_list, a2$journal_name), 
-               itoken(a2$combined, 
-               preprocessor = tolower, 
-               tokenizer = word_tokenizer,
-               ids = a2$paper_id,
-               # turn off progressbar because it won't look nice in rmd
-               progressbar = FALSE)
-  vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
-                                                     "at", "of", "above", "under"))
-  
-  vectorizer <- vocab_vectorizer(vocab2)
-  dtm_train <- create_dtm(it_train2, vectorizer)
-  
-  dtm_i <- list(name = query.list[file], dtm = dtm_train)
-  dtm_list[[file]] <- dtm_i
-}
+# load("../output/cleanedPapers.RData")
+# 
+# data.lib="../data/nameset"
+# data.files=list.files(path=data.lib, "*.txt")
+# 
+# # data.files
+# 
+# ## remove "*.txt"
+# query.list=substring(data.files, 
+#                      1, nchar(data.files)-4)
+# 
+# query.list
+# 
+# dtm_list <- list()
+# # tfidf_list <- list()
+# for (file in 1:length(data_list)) {
+#   a2 <- list()
+#   for (i in 1:length(data_list[[file]])) {
+#     a2 <- rbind(a2, data_list[[file]][[i]])
+#   }
+#   
+#   a2 <- data.frame(a2)
+#   a2 <- sapply(a2, unlist)
+#   a2 <- data.frame(a2)
+#   a2$combined <- as.character(a2$combined)
+#   
+#   it_train2 <- #itoken(paste(a2$paper_title, a2$coauthor_list, a2$journal_name), 
+#                itoken(a2$combined, 
+#                preprocessor = tolower, 
+#                tokenizer = word_tokenizer,
+#                ids = a2$paper_id,
+#                # turn off progressbar because it won't look nice in rmd
+#                progressbar = FALSE)
+#   vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
+#                                                      "at", "of", "above", "under"))
+#   
+#   vectorizer <- vocab_vectorizer(vocab2)
+#   dtm_train <- create_dtm(it_train2, vectorizer)
+#   
+#   dtm_i <- list(name = query.list[file], dtm = dtm_train)
+#   dtm_list[[file]] <- dtm_i
+# }
 
 ```
 
