@@ -126,7 +126,8 @@ for (file in 1:length(data_list)) {
 Running LDA on dtm
 ```{r}
 library("topicmodels")
-dtm<-dtm_list[[1]][[2]]
+load("../output/dtm_list.RData")
+
 
 # LDA parameters
 burnin <- 4000
@@ -172,8 +173,31 @@ for (i in 1:length(query.list)){
   phi_list[[i]] <- temp2
 }
 
-save(theta,file="../output/theta.RData")
-save(phi,file="../output/phi.RData")
+## rerun LDA on combined dtm
+load("../output/dtm_list_combined.RData")
+dtm_combined<-dtm_list_combined
+rowTotals <- apply(dtm_combined , 1, sum) 
+dtm_combined  <- dtm_combined[rowTotals> 0, ]
+  # Run LDA using Gibbs sampling
+ldaOut_combined <-
+  LDA(dtm_combined, k, method="Gibbs", control=list(nstart=nstart,
+                                                   seed = seed,
+                                                   best=best,
+                                                   burnin = burnin,
+                                                   alpha=alpha,
+                                                   delta=delta,
+                                                   iter=iter,
+                                                   thin=thin))
+  # theta_dj; 
+  # Probabilities associated with each topic assignment for each record 
+theta_combined <- as.data.frame(ldaOut_combined@gamma)
+  # phi_mj
+  # the probability of using word m in topic j
+phi_combined <- posterior(ldaOut_combined)$terms
+save(theta_combined,file="../output/theta_combined.RData")
+save(phi_combined,file="../output/phi_combined.RData")
+
+
 ```
 
 
