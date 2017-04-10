@@ -3,6 +3,8 @@ title: "Project 4 data cleaning"
 output: html_notebook
 ---
 ```{r}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(text2vec, dplyr, qlcMatrix, kernlab, knitr)
 library(stringr)
 ```
 
@@ -83,7 +85,7 @@ f.line.proc=function(lin, nam.query="."){
   journal_name=lin.str[3] 
   
   list(author_id = author_id,
-       unique_paper_id = paste(nam.query, paper_id, sep = "_"),
+       unique_paper_id = paste(nam.query, author_id, paper_id, sep = "_"),
        unique_author_id = paste(nam.query, author_id, sep = "_"),
        paper_id = paper_id, 
        coauthor_list = coauthor_list, 
@@ -124,7 +126,7 @@ for (file in 1:length(data_list)) {
                itoken(a2$combined, 
                preprocessor = tolower, 
                tokenizer = word_tokenizer,
-               ids = a2$paper_id,
+               ids = a2$unique_paper_id,
                # turn off progressbar because it won't look nice in rmd
                progressbar = FALSE)
   vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
@@ -178,7 +180,7 @@ a2$combined <- as.character(a2$combined)
 it_train2 <- itoken(a2$combined, 
                     preprocessor = tolower, 
                     tokenizer = word_tokenizer,
-                    ids = a2$paper_id,
+                    ids = a2$unique_paper_id,
                     # turn off progressbar because it won't look nice in rmd
                     progressbar = FALSE)
 vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
