@@ -217,28 +217,31 @@ dim(dtm_train)
 
 
 ## Step 3: Clustering
-
+# i think there's an error, right now in the last column of the theta_combined, there there are only only variations of YChen
+so when im filtering, it creates a problem. Im not sure where the other names went. 
+There are 8000+ rows which is right, but the labeling is off.
+@keng
 ```{r}
-＃create a name column to filter the combine dtm
-theta_combined$name<-  sub("(.*?)_.*", "\\1", theta_combined$docnames)
-#example
-Theta <- filter(theta_combined, docnames== "YChen")
-
-Theta<- as.matrix(as.data.frame(theta_combined[[3]][2]))
-Theta<- as.matrix(as.data.frame(Theta))
-ledistance<-dist(Theta, method = "euclid")
-cluster <- hclust(distance, method = "complete")
-#d <- cut(as.dendrogram(cluster), h=0.05)
- cutree(cluster, h=0.21)
-
-plot(cluster)
-similarity.matrix= matrix(nrow= nrow(theta),ncol=nrow(theta))
 source("http://bioconductor.org/biocLite.R") 
 biocLite(c("AnnotationDbi", "impute", "GO.db", "preprocessCore")) 
-install.packages("WGCNA")
 library("WGCNA")
-plotDendroAndColors(cluster, c) 
-theta_list
+
+#create a column of names (14 distinct ones) to filter dtm by names later
+theta_combined$name<-  sub("(.*?)_.*", "\\1", theta_combined$docnames)
+
+name.list <- unique(theta_combined$name)
+for (i in name.list){
+  print(i)
+  Theta <- filter(theta_combined, name== i)
+  #Theta<- as.matrix(as.data.frame(theta_combined[[3]][2]))
+  Theta<- as.matrix(as.data.frame(theta_combined[,
+                      c(-ncol(theta_combined),-ncol(theta_combined)+1)]))
+  ledistance<-dist(Theta, method = "euclid")
+  cluster <- hclust(distance, method = "complete")
+  cut <- cutree(cluster, h=0.15)
+  plotDendroAndColors(cluster, cut) 
+
+}
 ```
 
 ## Step 4: Evaluation
