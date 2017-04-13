@@ -5,7 +5,7 @@
 Term: Spring 2017
 
 + Team 8
-+ Project title: Who Is Who -- Entity Resolution
++ Project title: Entity Resolution Algorithms Evaluation
 + Team members
 	+ Chew, Ken
 	+ Jin, Yue
@@ -14,7 +14,7 @@ Term: Spring 2017
 	+ Sun, Xiaowo
 + Project summary: 
 In this project, we compared two methods of author disambiguation, which are discussed in a pair of research papers written by [(a) Song, Yang, et al.](http://clgiles.ist.psu.edu/papers/JCDL2007-topic_based_name_disambiguation.pdf) and [(b) Culotta, Aron, et al.](https://people.cs.umass.edu/~mccallum/papers/culotta07author.pdf) from the Entity Resolution literature. 
-In paper (a), we focused on the LDA methods. In paper (b), we adopted Clusterwise Score Function, and used Error-Driven Online Training to generate examples and applied Ranking MIRA as the loss function.
+In paper (a), we focused on the LDA methods. In paper (b), we adopted Clusterwise Score Function, and used Error-Driven Online Training to generate examples and Ranking MIRA as the loss function.
 
 **Contribution statement**: ([default](doc/a_note_on_contributions.md)) All team members contributed equally in all stages of this project. All team members approve our work presented in this GitHub repository including this contributions statement. 
 
