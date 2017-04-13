@@ -9,197 +9,10 @@ library(stringr)
 library(qlcMatrix)
 ```
 
-```{r}
-data.lib="../data/nameset"
-data.files=list.files(path=data.lib, "*.txt")
-
-data.files
-
-## remove "*.txt"
-query.list=substring(data.files, 
-                     1, nchar(data.files)-4)
-
-query.list
-
-## add a space
-# query.list=paste(substring(query.list, 1, 1), 
-#                  " ", 
-#                  substring(query.list, 
-#                            2, nchar(query.list)),
-#                  sep=""
-#                  )
-
-query.list
-
-```
-
-```{r}
-f.line.proc=function(lin, nam.query="."){
-
-  # remove unwanted characters
-  char_notallowed <- "\\@#$%^&?" # characters to be removed
-  lin.str=str_replace(lin, char_notallowed, "")
-
-  # get author id
-  lin.str=strsplit(lin.str, "_")[[1]]
-  author_id=as.numeric(lin.str[1])
-  
-  # get paper id
-  lin.str=lin.str[2]
-  paper_id=strsplit(lin.str, " ")[[1]][1]
-  lin.str=substring(lin.str, nchar(paper_id)+1, nchar(lin.str))
-  paper_id=as.numeric(paper_id)
-  
-  # get coauthor list
-  lin.str=strsplit(lin.str, "<>")[[1]]
-  coauthor_list=strsplit(lin.str[1], ";")[[1]]
-
-  #print(lin.str)
-  for(j in 1:length(coauthor_list)){
-      if(nchar(coauthor_list[j])>0){
-        nam = strsplit(coauthor_list[j], " ")[[1]]
-        if(nchar(nam[1])>0){
-          first.ini=substring(nam[1], 1, 1)
-        }else{
-          first.ini=substring(nam[2], 1, 1)
-        }
-      }
-      last.name=nam[length(nam)]
-      nam.str = paste0(first.ini, last.name)
-      coauthor_list[j]=nam.str
-  }
-  
-  match_ind = charmatch(nam.query, coauthor_list, nomatch=-1)
-  
-  #print(nam.query)
-  #print(coauthor_list)
-  #print(match_ind)
-  
-  if(match_ind>0){
-    coauthor_list=coauthor_list[-match_ind]
-  }
-  
-  coauthor_list = paste(coauthor_list, collapse = " ")
-
-  
-  paper_title=lin.str[2]
-  journal_name=lin.str[3] 
-  
-  list(author_id = author_id,
-       unique_paper_id = paste(nam.query, author_id, paper_id, sep = "_"),
-       unique_author_id = paste(nam.query, author_id, sep = "_"),
-       paper_id = paper_id, 
-       coauthor_list = coauthor_list, 
-       paper_title = paper_title, 
-       journal_name = journal_name,
-       combined = paste(coauthor_list, paper_title, journal_name)
-       )
-}
-```
-
-```{r}
-## generate DTM/tfidf for 14 files individually
-
-data_list = list(1:length(data.files))
-
-for(i in 1:length(data.files)){
-  
-  ## Step 0 scan in one line at a time.
-  
-  dat=as.list(readLines(paste(data.lib, data.files[i], sep="/")))
-  data_list[[i]]=lapply(dat, f.line.proc, nam.query=query.list[i])
-}
-
-# tfidf_list <- list()
-dtm_list <- list()
-for (file in 1:length(data_list)) {
-  a2 <- list()
-  for (i in 1:length(data_list[[file]])) {
-    a2 <- rbind(a2, data_list[[file]][[i]])
-  }
-  
-  a2 <- data.frame(a2)
-  a2 <- sapply(a2, unlist)
-  a2 <- data.frame(a2)
-  a2$combined <- as.character(a2$combined)
-  
-  it_train2 <- #itoken(paste(a2$paper_title, a2$coauthor_list, a2$journal_name), 
-               itoken(a2$combined, 
-               preprocessor = tolower, 
-               tokenizer = word_tokenizer,
-               ids = a2$author_id,
-               # turn off progressbar because it won't look nice in rmd
-               progressbar = FALSE)
-  vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
-                                                     "at", "of", "above", "under"))
-  
-  vectorizer <- vocab_vectorizer(vocab2)
-  dtm_train <- create_dtm(it_train2, vectorizer)
-  
-  dtm_i <- list(name = query.list[file], dtm = dtm_train)
-  dtm_list[[file]]  <- dtm_i
-  
-  # tfidf <- TfIdf$new()
-  # dtm_train_tfidf <- fit_transform(dtm_train, tfidf)
-  # tfidf_i <- list(name = query.list[file], tfidf = dtm_train_tfidf)
-  # tfidf_list[[file]] <- tfidf_i
-}
-
-save(dtm_list, file = "../output/dtm_list.RData")
-# save(tfidf_list, file = "../output/tfidf_list.RData")
-```
-
-```{r}
-## generate DTM/tfidf for all 14 files combined as one
-
-data_list = list(1)
-dat = list()
-
-for(i in 1:length(data.files)){
-  
-  ## Step 0 scan in one line at a time.
-  
-  raw_dat=as.list(readLines(paste(data.lib, data.files[i], sep="/")))
-  dat <- c(dat, raw_dat)
-  
-}
-
-data_list=lapply(dat, f.line.proc, nam.query=query.list[i])
-
-# tfidf_list_combined <- list()
-dtm_list_combined <- list()
-a2 <- list()
-for (line in 1:length(data_list)) {
-  a2 <- rbind(a2, data_list[[line]])
-  }
-  
-a2 <- data.frame(a2)
-a2 <- sapply(a2, unlist)
-a2 <- data.frame(a2)
-a2$combined <- as.character(a2$combined)
-
-it_train2 <- itoken(a2$combined, 
-                    preprocessor = tolower, 
-                    tokenizer = word_tokenizer,
-                    ids = a2$unique_paper_id,
-                    # turn off progressbar because it won't look nice in rmd
-                    progressbar = FALSE)
-vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
-                                                     "at", "of", "above", "under"))
-
-vectorizer <- vocab_vectorizer(vocab2)
-dtm_list_combined <- create_dtm(it_train2, vectorizer)
-
-# tfidf <- TfIdf$new()
-# tfidf_list_combined <- fit_transform(dtm_list_combined, tfidf)
-
-
-save(dtm_list_combined, file = "../output/dtm_list_combined.RData")
-# save(tfidf_list_combined, file = "../output/tfidf_list_combined.RData")
-```
-
 Data
 ```{r}
+load("../output/dtm_list.RData")
+load("../output/tfidf_list.RData")
 dtm_train_tfidf<-tfidf_list[[1]]$tfidf
 label<-rownames(as.data.frame(as.matrix(dtm_list[[1]]$dtm)))
 ```
@@ -259,6 +72,7 @@ best<-matrix(NA, nrow = length(label), ncol = 2)
 errordriven<-function(result_hclust){
 for (m in 1:(M-2)){
    k<-K[m]
+     result_hclust <- cutree(h,k)
      for (i in 1:k){
        num<-count[result_hclust == i]
        if (length(unique(label[num]))>1)
@@ -278,7 +92,6 @@ for (m in 1:(M-2)){
 }
 ```
 
-
 Update parameters
 ```{r}
 s1<-NULL
@@ -292,7 +105,7 @@ UpdateMatrix<-function(result_hclust){
        num<-count[result_hclust == cluster[i]]
        
        if (length(num) > 1){
-       f[,i]<-colMeans(dtm_train_tfidf[num,])
+       f[,i]<-colMeans(dtm_train_tfidf[num,],na.rm = T)
        }
        else{
        f[,i]<-dtm_train_tfidf[num,]
@@ -302,21 +115,21 @@ UpdateMatrix<-function(result_hclust){
        return(ff)
 }
 
-f1<-UpdateMatrix(best[,1])
-f2<-UpdateMatrix(best[,2])
-f3<-f1-f2
-
 
 fr <- function(x){
   sum((x-lamda)^2)
 }
 ```
 
+Whole algorithm
 ```{r}
-
 lamda<-rep(1,dim(dtm_train_tfidf)[2])
 margin<-0.01
 tao<--30
+
+fr <- function(x){
+  sum((x-lamda)^2)
+}
 
 for (i in 1:100){
 
@@ -330,7 +143,6 @@ colnames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
 
 # Cluster based on the feature matrix
 h <- hclust(as.dist(docsdissim), method = "ward.D")
-result_hclust <- cutree(h,k)
 
 # Drive the error
 best<-errordriven(result_hclust)
@@ -354,26 +166,14 @@ if (sum((lamda[i]-lamda[i-1])^2)<0.1)
 
 ```
 
-
-evaluation
+Evaluation
 ```{r}
 source('../lib/evaluation_measures.R')
-matching_matrix_hclust <- matching_matrix(AKumar$AuthorID,result_hclust)
+matching_matrix_hclust <- matching_matrix(label,result_hclust)
 performance_hclust <- performance_statistics(matching_matrix_hclust)
-matching_matrix_sclust <- matching_matrix(AKumar$AuthorID,result_sclust)
-performance_sclust <- performance_statistics(matching_matrix_sclust)
-compare_df <- data.frame(method=c("sClust","hClust"),
-precision=c(performance_sclust$precision, performance_hclust$precision),
-recall=c(performance_sclust$recall, performance_hclust$recall),
-f1=c(performance_sclust$f1, performance_hclust$f1),
-accuracy=c(performance_sclust$accuracy, performance_hclust$accuracy),
-time=c(time_sclust,time_hclust))
-kable(compare_df,caption="Comparision of performance for two clustering methods",digits = 2)
+df <- data.frame(precision=performance_hclust$precision,
+recall=performance_hclust$recall,
+f1=performance_hclust$f1,
+accuracy=performance_hclust$accuracy,
+time=c(time_hclust))
 ```
-
-```{r}
-table(result_hclust,label)
-table(result_hclust== label)
-accuracy <- sum(result_hclust == label)/ length(label)
-```
-
