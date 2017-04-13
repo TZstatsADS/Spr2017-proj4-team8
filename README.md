@@ -4,8 +4,8 @@
 
 Term: Spring 2017
 
-+ Team #
-+ Projec title: Lorem ipsum dolor sit amet
++ Team 8
++ Project title: Who Is Who -- Entity Resolution
 + Team members
 	+ Chew, Ken
 	+ Jin, Yue
