@@ -12,55 +12,138 @@ This file is currently a template for implementing one of the suggested papers, 
 ```{r eval=FALSE}
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(text2vec, dplyr, qlcMatrix, kernlab, knitr)
+library(stringr)
 
 setwd("~/Dropbox/Project4_WhoIsWho/doc")
 # here replace it with your own path or manually set it in RStudio
 # to where this rmd file is located
 ```
 
-## Step 1: Load and process the data
+## Step 1: Load and process the data (from Cleaning.Rmd)
 
 For each record in the dataset, there are some information we want to extract and store them in a regular form: canonical author id, coauthors, paper title, publication venue title. You may need to find regular matched in the input string vectors by using regex in R. Here is a tutorial for regular expression in R, which might help you <https://rstudio-pubs-static.s3.amazonaws.com/74603_76cd14d5983f47408fdf0b323550b846.html>
 
-```{r eval=FALSE}
-# AKumar <- data.frame(scan("../data/nameset/AKumar.txt",
-#                           what = list(Coauthor = "", Paper = "", Journal = ""),
-#                           sep=">", quiet=TRUE), stringsAsFactors=FALSE)
-# # This need to be modified for different name set
-# 
-# # extract canonical author id before "_"
-# AKumar$AuthorID <- sub("_.*","",AKumar$Coauthor)
-# # extract paper number under same author between "_" and first whitespace
-# AKumar$PaperNO <- sub(".*_(\\w*)\\s.*", "\\1", AKumar$Coauthor)
-# # delete "<" in AKumar$Coauthor, you may need to further process the coauthor
-# # term depending on the method you are using
-# AKumar$Coauthor <- gsub("<","",sub("^.*?\\s","", AKumar$Coauthor))
-# # delete "<" in AKumar$Paper
-# AKumar$Paper <- gsub("<","",AKumar$Paper)
-# # add PaperID for furthur use, you may want to combine all the nameset files and 
-# # then assign the unique ID for all the citations
-# AKumar$PaperID <- rownames(AKumar)
+```{r, eval=FALSE}
+source("../lib/cleaning.R")
+
+data.lib="../data/nameset"
+data.files=list.files(path=data.lib, "*.txt")
+
+data.files
+
+## remove "*.txt"
+query.list=substring(data.files, 
+                     1, nchar(data.files)-4)
+
+query.list
 ```
+
+
 
 ## Step 2: Feature design
 
 Following the section 3.1 in the paper, we want to use paper titles to design features for citations. 
 
-TF-IDF is a numerical statistics that is intended to reflect how important a word is to a document in a collection or corpus. It is often used as a weighting factor in information retrieval, text mining, and user modeling. The TF-IDF value increases proportionally to the number of times a word appears in the document, but is offset by the frequency of the word in the corpus, which helps to adjust for the fact that some words appear more frequently in general.
+Let's first create a vocabulary-based DTM. Here we collect unique terms from all documents and mark each of them with a unique ID using the  `create_vocabulary()` function. We use an iterator to create the vocabulary.
 
-$$
-\begin{aligned}
-\mbox{TF}(t) &=\frac{\mbox{Number of times term $t$ appears in a document}}{\mbox{Total number of terms in the document}}\\
-\mbox{IDF}(t) &=\log{\frac{\mbox{Total number of documents}}{\mbox{Number of documents with term $t$ in it}}}\\
-\mbox{TF-IDF}(t) &=\mbox{TF}(t)\times\mbox{IDF}(t)
-\end{aligned}
-$$
+```{r, eval=FALSE}
 
-To compute TF-IDF, we first need to construct a document-term matrix (DTM). In other words, the first step is to vectorize text by creating a map from words to a vector space. There are some good packages you could use for text mining (probably you have tried during first project, you don't need to follow my code if you are familiar with other package), e.g. *text2vec, tm, tidytext*. Here, we are going to use *text2vec* package. A good tutorial can be found here, <https://cran.r-project.org/web/packages/text2vec/vignettes/text-vectorization.html>.
+## generate DTM/tfidf for 14 files individually
 
-Let’s first create a vocabulary-based DTM. Here we collect unique terms from all documents and mark each of them with a unique ID using the  `create_vocabulary()` function. We use an iterator to create the vocabulary.
+data_list = list(1:length(data.files))
 
-Running LDA on dtm
+for(i in 1:length(data.files)){
+  
+  ## Step 0 scan in one line at a time.
+  
+  dat=as.list(readLines(paste(data.lib, data.files[i], sep="/")))
+  data_list[[i]]=lapply(dat, f.line.proc, nam.query=query.list[i])
+}
+
+# tfidf_list <- list()
+dtm_list <- list()
+for (file in 1:length(data_list)) {
+  a2 <- list()
+  for (i in 1:length(data_list[[file]])) {
+    a2 <- rbind(a2, data_list[[file]][[i]])
+  }
+  
+  a2 <- data.frame(a2)
+  a2 <- sapply(a2, unlist)
+  a2 <- data.frame(a2)
+  a2$combined <- as.character(a2$combined)
+  
+  it_train2 <- #itoken(paste(a2$paper_title, a2$coauthor_list, a2$journal_name), 
+               itoken(a2$combined, 
+               preprocessor = tolower, 
+               tokenizer = word_tokenizer,
+               ids = a2$unique_paper_id,
+               # turn off progressbar because it won't look nice in rmd
+               progressbar = FALSE)
+  vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
+                                                     "at", "of", "above", "under"))
+  
+  vectorizer <- vocab_vectorizer(vocab2)
+  dtm_train <- create_dtm(it_train2, vectorizer)
+  
+  dtm_i <- list(name = query.list[file], dtm = dtm_train)
+  dtm_list[[file]]  <- dtm_i
+}
+
+save(dtm_list, file = "../output/dtm_list.RData")
+```
+```
+
+```{r, eval = F}
+## generate DTM/tfidf for all 14 files combined as one
+
+data_list = list()
+dat = list()
+
+data_list2 = list(1:length(data.files))
+
+for(i in 1:length(data.files)){
+  
+  ## Step 0 scan in one line at a time.
+  
+  dat=as.list(readLines(paste(data.lib, data.files[i], sep="/")))
+  data_list2[[i]]=lapply(dat, f.line.proc, nam.query=query.list[i])
+  data_list <- c(data_list, data_list2[[i]])
+}
+
+
+
+
+# tfidf_list_combined <- list()
+dtm_list_combined <- list()
+a2 <- list()
+for (line in 1:length(data_list)) {
+  a2 <- rbind(a2, data_list[[line]])
+  }
+  
+a2 <- data.frame(a2)
+a2 <- sapply(a2, unlist)
+a2 <- data.frame(a2)
+a2$combined <- as.character(a2$combined)
+
+it_train2 <- itoken(a2$combined, 
+                    preprocessor = tolower, 
+                    tokenizer = word_tokenizer,
+                    ids = a2$unique_paper_id,
+                    # turn off progressbar because it won't look nice in rmd
+                    progressbar = FALSE)
+vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
+                                                     "at", "of", "above", "under"))
+
+vectorizer <- vocab_vectorizer(vocab2)
+dtm_list_combined <- create_dtm(it_train2, vectorizer)
+
+save(dtm_list_combined, file = "../output/dtm_list_combined.RData")
+```
+
+
+Running LDA on dtm.
+
 ```{r eval=FALSE}
 library("topicmodels")
 load("../output/dtm_list.RData")
@@ -188,7 +271,8 @@ for (i in 1:length(theta_list)){
 save(cluster.list.separate,file="../output/cluster_list_separate.RData")
 
 ```
-## Step 4: Evaluation
+
+## Step 3: Evaluation
 
 To evaluate the performance of the method, it is required to calculate the degree of agreement between a set of system-output partitions and a set of true partitions. In general, the agreement between two partitioins is measured for a pair of entities within partitions. The basic unit for which pair-wise agreement is assessed is a pair of entities (authors in our case) which belongs to one of the four cells in the following table (Kang et at.(2009)):
 
