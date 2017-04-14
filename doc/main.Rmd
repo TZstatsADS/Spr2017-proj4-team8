@@ -174,12 +174,12 @@ There are 8000+ rows which is right, but the labeling is off.
 @keng
 ```{r}
 load("../output/theta_combined.RData")
+load("../output/theta_list.RData")
 
 #create a column of names (14 distinct ones) to filter dtm by names later
 theta_combined$name<-  sub("(.*?)_.*", "\\1", row.names(theta_combined))
-cluster.list=NULL
 name.list <- unique(theta_combined$name)
-cluster.list=NULL
+cluster.list.combined=NULL
 for (i in name.list){
   print(i)
   Theta <- filter(theta_combined, theta_combined$name == i)
@@ -189,12 +189,30 @@ for (i in name.list){
   cluster <- hclust(distance, method = "complete")
   cut <- cutree(cluster, h=0.15)
   unique(cut)
-  cluster.list[[which(name.list== i)]] <- cut
+  cluster.list.combined[[which(name.list== i)]] <- cut
 }
 
-save(cluster.list,file="../output/cluster_list.RData")
-```
+save(cluster.list.combined,file="../output/cluster_list_combined.RData")
 
+
+
+
+
+#create a column of names (14 distinct ones) to filter dtm by names later
+cluster.list.separate=NULL
+for (i in 1:length(theta_list)){
+  print(i)
+  Theta<- as.matrix(as.data.frame(theta_list[[i]][2]))
+  Theta<- Theta[,-11]
+  distance<-dist(Theta, method = "euclid")
+  cluster <- hclust(distance, method = "complete")
+  cut <- cutree(cluster, h=0.15)
+  unique(cut)
+  cluster.list.separate[[i]] <- cut
+}
+save(cluster.list.separate,file="../output/cluster_list_separate.RData")
+
+```
 ## Step 4: Evaluation
 
 To evaluate the performance of the method, it is required to calculate the degree of agreement between a set of system-output partitions and a set of true partitions. In general, the agreement between two partitioins is measured for a pair of entities within partitions. The basic unit for which pair-wise agreement is assessed is a pair of entities (authors in our case) which belongs to one of the four cells in the following table (Kang et at.(2009)):
