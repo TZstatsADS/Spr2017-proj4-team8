@@ -188,7 +188,7 @@ for (i in name.list){
   distance<-dist(Theta, method = "euclid")
   cluster <- hclust(distance, method = "complete")
   cut <- cutree(cluster, h=0.15)
-  unique(cut)
+  length(unique(cut))
   cluster.list[[which(name.list== i)]] <- cut
 }
 
