@@ -173,26 +173,26 @@ so when im filtering, it creates a problem. Im not sure where the other names we
 There are 8000+ rows which is right, but the labeling is off.
 @keng
 ```{r}
-source("http://bioconductor.org/biocLite.R") 
-biocLite(c("AnnotationDbi", "impute", "GO.db", "preprocessCore")) 
-library("WGCNA")
+load("../output/theta_combined.RData")
 
 #create a column of names (14 distinct ones) to filter dtm by names later
-theta_combined$name<-  sub("(.*?)_.*", "\\1", theta_combined$docnames)
-
+theta_combined$name<-  sub("(.*?)_.*", "\\1", row.names(theta_combined))
+cluster.list=NULL
 name.list <- unique(theta_combined$name)
+cluster.list=NULL
 for (i in name.list){
   print(i)
-  Theta <- filter(theta_combined, name== i)
+  Theta <- filter(theta_combined, theta_combined$name == i)
   #Theta<- as.matrix(as.data.frame(theta_combined[[3]][2]))
-  Theta<- as.matrix(as.data.frame(theta_combined[,
-                      c(-ncol(theta_combined),-ncol(theta_combined)+1)]))
-  ledistance<-dist(Theta, method = "euclid")
+  Theta<- as.matrix(as.data.frame(Theta[,-ncol(Theta)]))
+  distance<-dist(Theta, method = "euclid")
   cluster <- hclust(distance, method = "complete")
   cut <- cutree(cluster, h=0.15)
-  plotDendroAndColors(cluster, cut) 
-
+  unique(cut)
+  cluster.list[[which(name.list== i)]] <- cut
 }
+
+save(cluster.list,file="../output/cluster_list.RData")
 ```
 
 ## Step 4: Evaluation
