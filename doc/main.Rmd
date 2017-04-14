@@ -176,6 +176,8 @@ There are 8000+ rows which is right, but the labeling is off.
 load("../output/theta_combined.RData")
 load("../output/theta_list.RData")
 
+
+#clustering on the combined theta list (from 1 dtm)
 #create a column of names (14 distinct ones) to filter dtm by names later
 theta_combined$name<-  sub("(.*?)_.*", "\\1", row.names(theta_combined))
 name.list <- unique(theta_combined$name)
@@ -187,6 +189,7 @@ for (i in name.list){
   Theta<- as.matrix(as.data.frame(Theta[,-ncol(Theta)]))
   distance<-dist(Theta, method = "euclid")
   cluster <- hclust(distance, method = "complete")
+  #cut tree at h= 0.15, differ from the 0.05 proposed. read explanation in doc
   cut <- cutree(cluster, h=0.15)
   unique(cut)
   cluster.list.combined[[which(name.list== i)]] <- cut
@@ -197,8 +200,7 @@ save(cluster.list.combined,file="../output/cluster_list_combined.RData")
 
 
 
-
-#create a column of names (14 distinct ones) to filter dtm by names later
+#clustering on the theta formed from the non-combined dtm 
 cluster.list.separate=NULL
 for (i in 1:length(theta_list)){
   print(i)
