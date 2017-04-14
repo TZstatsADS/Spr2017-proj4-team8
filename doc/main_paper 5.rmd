@@ -1,0 +1,187 @@
+l---
+title: "Project 4 data cleaning"
+output: html_notebook
+---
+```{r}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(text2vec, dplyr, qlcMatrix, kernlab, knitr)
+library(stringr)
+library(qlcMatrix)
+```
+
+Data
+```{r}
+load("../output/dtm_list.RData")
+load("../output/tfidf_list.RData")
+dtm_train_tfidf<-tfidf_list[[1]]$tfidf
+label<-rownames(as.data.frame(as.matrix(dtm_list[[1]]$dtm)))
+```
+
+Cluster
+```{r}
+lamda<-vector(length=dim(dtm_train_tfidf)[2])
+
+lamda<-rep(1,dim(dtm_train_tfidf)[2])
+
+L<- rep(lamda,each=dim(dtm_train_tfidf)[1])
+L<- matrix(L,nrow = dim(dtm_train_tfidf)[1], ncol = dim(dtm_train_tfidf)[2])
+
+dtm_train_tfidf<-dtm_train_tfidf*L 
+docsdissim <- cosSparse(t(dtm_train_tfidf))
+rownames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
+colnames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
+
+h <- hclust(as.dist(docsdissim), method = "ward.D")
+```
+
+Score function
+```{r}
+s<-NULL
+Score<-function(lamda,result_hclust){
+  f<-matrix(NA,nrow=dim(dtm_train_tfidf)[2],ncol=length(unique(result_hclust)))
+  for (i in 1:length(unique(result_hclust))){
+       
+       cluster<-unique(result_hclust)
+       num<-count[result_hclust == cluster[i]]
+       
+       if (length(num) > 1){
+       f[,i]<-colMeans(dtm_train_tfidf[num,])
+       }
+       else{
+       f[,i]<-dtm_train_tfidf[num,]
+       }
+        
+       s[i]<-t(lamda) %*% f[,i]
+   }
+  S<-sum(s)
+  return(S)
+}
+```
+
+Error driven
+```{r}
+source('../lib/evaluation_measures.R')
+count<-1:length(label)
+M<-length(label)
+K<-(M-1):2
+acc<-NULL
+sco<-NULL
+neighbor<-matrix(NA, nrow = length(label),ncol = 100)
+best<-matrix(NA, nrow = length(label), ncol = 2)
+
+errordriven<-function(result_hclust){
+for (m in 1:(M-2)){
+   k<-K[m]
+     result_hclust <- cutree(h,k)
+     for (i in 1:k){
+       num<-count[result_hclust == i]
+       if (length(unique(label[num]))>1)
+        { 
+         for (j in 1:100){
+         neighbor[,j]<-sample(1:k,length(label),replace  = T)
+         matching_matrix_hclust <- matching_matrix(label,neighbor[,j])
+         acc[j] <- performance_statistics(matching_matrix_hclust)[[1]]
+         sco[j]<-Score(lamda,neighbor[,j])
+         }
+       }
+     }
+        best[,1]<-neighbor[,which.max(acc)]
+        best[,2]<-neighbor[,which.max(sco)]
+ }
+  return(best)
+}
+```
+
+Update parameters
+```{r}
+s1<-NULL
+s2<-NULL
+
+UpdateMatrix<-function(result_hclust){
+  
+  for (i in 1:length(unique(result_hclust))){
+       
+       cluster<-unique(result_hclust)
+       num<-count[result_hclust == cluster[i]]
+       
+       if (length(num) > 1){
+       f[,i]<-colMeans(dtm_train_tfidf[num,],na.rm = T)
+       }
+       else{
+       f[,i]<-dtm_train_tfidf[num,]
+       }
+   }
+       ff<-colMeans(t(f),na.rm = T)
+       return(ff)
+}
+
+
+fr <- function(x){
+  sum((x-lamda)^2)
+}
+```
+
+Whole algorithm
+```{r}
+lamda<-rep(1,dim(dtm_train_tfidf)[2])
+margin<-0.01
+tao<--30
+
+LAMDA <- matrix (NA,nrow = length(lamda),ncol = 100)
+LAMDA[,1] <- lamda
+
+for (p in 1:100){
+
+# The feature matrix after weighed by parameters
+L<- rep(lamda[p],each=dim(dtm_train_tfidf)[1])
+L<- matrix(L,nrow = dim(dtm_train_tfidf)[1], ncol = dim(dtm_train_tfidf)[2])
+dtm_train_tfidf<-dtm_train_tfidf*L 
+docsdissim <- cosSparse(t(dtm_train_tfidf))
+rownames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
+colnames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
+
+# Cluster based on the feature matrix
+h <- hclust(as.dist(docsdissim), method = "ward.D")
+
+# Drive the error
+best<-errordriven(result_hclust)
+
+# Update the parameters
+fr <- function(x){
+  sum((x-lamda[p])^2)
+}
+
+f1<-UpdateMatrix(best[,1])
+f2<-UpdateMatrix(best[,2])
+f3<-f1-f2
+u1<-rbind(f3,-f2)
+c1<-c(margin,tao)
+optim<-constrOptim(lamda[p],fr,grad = NULL, ui = u1,ci = c1)
+lamda[p+1]<-optim$par
+
+# Converage
+if (sum((lamda[p+1]-lamda[p])^2)<0.1)
+{
+  break
+}
+
+}
+
+```
+
+Other data we use
+```{r}
+# After we calculate the parameters, we can employ it on the other 9 files and can average the paramters. Then we can test on the other 4 files.
+```
+
+Evaluation
+```{r}
+source('../lib/evaluation_measures.R')
+matching_matrix_hclust <- matching_matrix(label,result_hclust)
+performance_hclust <- performance_statistics(matching_matrix_hclust)
+df <- data.frame(precision=performance_hclust$precision,
+recall=performance_hclust$recall,
+f1=performance_hclust$f1,
+accuracy=performance_hclust$accuracy,
+time=c(time_hclust))
+```

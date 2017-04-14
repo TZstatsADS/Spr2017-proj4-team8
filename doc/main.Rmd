@@ -73,56 +73,6 @@ Let’s first create a vocabulary-based DTM. Here we collect unique terms from a
 ```
 
 
-** START HERE **
-
-```{r}
-# load("../output/cleanedPapers.RData")
-# 
-# data.lib="../data/nameset"
-# data.files=list.files(path=data.lib, "*.txt")
-# 
-# # data.files
-# 
-# ## remove "*.txt"
-# query.list=substring(data.files, 
-#                      1, nchar(data.files)-4)
-# 
-# query.list
-# 
-# dtm_list <- list()
-# # tfidf_list <- list()
-# for (file in 1:length(data_list)) {
-#   a2 <- list()
-#   for (i in 1:length(data_list[[file]])) {
-#     a2 <- rbind(a2, data_list[[file]][[i]])
-#   }
-#   
-#   a2 <- data.frame(a2)
-#   a2 <- sapply(a2, unlist)
-#   a2 <- data.frame(a2)
-#   a2$combined <- as.character(a2$combined)
-#   
-#   it_train2 <- #itoken(paste(a2$paper_title, a2$coauthor_list, a2$journal_name), 
-#                itoken(a2$combined, 
-#                preprocessor = tolower, 
-#                tokenizer = word_tokenizer,
-#                ids = a2$paper_id,
-#                # turn off progressbar because it won't look nice in rmd
-#                progressbar = FALSE)
-#   vocab2 <- create_vocabulary(it_train2, stopwords = c("a", "an", "the", "in", "on",
-#                                                      "at", "of", "above", "under"))
-#   
-#   vectorizer <- vocab_vectorizer(vocab2)
-#   dtm_train <- create_dtm(it_train2, vectorizer)
-#   
-#   dtm_i <- list(name = query.list[file], dtm = dtm_train)
-#   dtm_list[[file]] <- dtm_i
-# }
-
-```
-
-
-**END HERE**
 Running LDA on dtm
 ```{r}
 library("topicmodels")
@@ -142,8 +92,9 @@ delta=0.1
 # number of topics
 k <- 10
 alpha<-50/k
-# run lda on each name
 
+
+# run lda on each name
 theta_list<-list(name=NULL,theta=NULL)
 phi_list<-list(name=NULL,phi=NULL)
 
@@ -190,7 +141,7 @@ ldaOut_combined <-
                                                    thin=thin))
   # theta_dj; 
   # Probabilities associated with each topic assignment for each record 
-theta_combined <- as.data.frame(ldaOut_combined@gamma)
+theta_combined <- as.data.frame(ldaOut_combined@gamma, rownames(dtm_combined))
   # phi_mj
   # the probability of using word m in topic j
 phi_combined <- posterior(ldaOut_combined)$terms
@@ -222,26 +173,26 @@ so when im filtering, it creates a problem. Im not sure where the other names we
 There are 8000+ rows which is right, but the labeling is off.
 @keng
 ```{r}
-source("http://bioconductor.org/biocLite.R") 
-biocLite(c("AnnotationDbi", "impute", "GO.db", "preprocessCore")) 
-library("WGCNA")
+load("../output/theta_combined.RData")
 
 #create a column of names (14 distinct ones) to filter dtm by names later
-theta_combined$name<-  sub("(.*?)_.*", "\\1", theta_combined$docnames)
-
+theta_combined$name<-  sub("(.*?)_.*", "\\1", row.names(theta_combined))
+cluster.list=NULL
 name.list <- unique(theta_combined$name)
+cluster.list=NULL
 for (i in name.list){
   print(i)
-  Theta <- filter(theta_combined, name== i)
+  Theta <- filter(theta_combined, theta_combined$name == i)
   #Theta<- as.matrix(as.data.frame(theta_combined[[3]][2]))
-  Theta<- as.matrix(as.data.frame(theta_combined[,
-                      c(-ncol(theta_combined),-ncol(theta_combined)+1)]))
-  ledistance<-dist(Theta, method = "euclid")
+  Theta<- as.matrix(as.data.frame(Theta[,-ncol(Theta)]))
+  distance<-dist(Theta, method = "euclid")
   cluster <- hclust(distance, method = "complete")
   cut <- cutree(cluster, h=0.15)
-  plotDendroAndColors(cluster, cut) 
-
+  unique(cut)
+  cluster.list[[which(name.list== i)]] <- cut
 }
+
+save(cluster.list,file="../output/cluster_list.RData")
 ```
 
 ## Step 4: Evaluation
