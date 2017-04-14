@@ -1,0 +1,40 @@
+Explanation of procedure for method used in paper 4
+
+
+First form the document term matrix
+we do so in two ways (to compare performance and robustness)
+    The first way:
+        Create a DTM using each author as the corpus. i.e. AGupta, AKumar… 
+        14 DTM’s in total
+    The second way:
+        Create one DTM for all authors combined. one giant corpus
+        potentially more robust considering each documents is rather small in size
+
+
+Perform Latent dirichret Allocation on the DTM’s forming k number of latent topics.
+  Generate Theta - a probability distribution for each document over k topics.
+  Theta corresponds to the probabilities associated with each topic assignment for each document
+  Theta - number of rows= number of topics, number of columns= k (topics)
+  Each row is a probability distribution that adds to 1.
+  So each element in the matrix represent the probability/proportion that given document associate with the specific topic
+
+
+Now we have the data ready for clustering (theta values).
+We view each document as a point in the k dimensional latent space. 
+and we can form a distance matrix between documents based on the euclidean distance metric
+
+
+
+Now from here our approach deviates from the original paper.
+    In the paper, the author proposed to create a similarity matrix (string distance between author names)
+    The use of the similarity matrix is to be able to differentiate different authors in the clustering process. So that documents with different authors names automatically get put into different clusters.
+    However, we elect not to use the similarity matrix because we can simply filter out author names instead. The reason they can’t filter in the original paper is because the same author can have variations to their names in an uncleaned data set. But since our data set consists of the same representation for every name we don't need to do so. (ex. there is no A.J.Gupta)
+
+
+The second way we differ from the original paper is in the height parameter we choose. 
+    The author proposed epsilon = 0.05, Epsilon limits how far clusters have to be to be considered different clusters.
+    However due to the fact that we have much less words in each documents than they did in the paper (they had the first page of each document while we only had the tile and coauthors) We have documents that are much less similar in its latent space representation. 
+    A good way of seeing the reason behind this is noting the following scenerio.
+    Two papers about machine learning can have completely different titles. 
+    But they probably share words like “probability” “statistic” “regression” etc in the actual document
+    So through cross validation, we picked epsilon to be 0.15
