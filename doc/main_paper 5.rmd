@@ -4,7 +4,6 @@ author: "Team 8 - Yijia Pan, Xiaowo Sun"
 date: "4/14/2017"
 output: pdf_document
 ---
-
 In this notebook, we focus on the method mentioned in the paper written by Song, Yang, et al. for the name disambiguation issue. We adopted Clusterwise Score Function, and used Error-Driven Online Training to generate examples and Ranking MIRA as the loss function.
 
 ## Step 0: Load the packages, specify directories
@@ -107,7 +106,7 @@ for (m in 1:(M-2)){
 ```
 
 ### UpdateParameters by Ranking MIRA
-We use a variant of MIRA (Mar- gin Infused Relaxed Algorithm), a relaxed, online max- imum margin training algorithm (Crammer & Singer 2003). As discussed in the paper, We updates the parameter vector with three constraints: (1) the better neighbor must have a higher score by a given margin, (2) the change to Λ should be minimal, and (3) the inferior neighbor must have a score below a user-defined threshold (Culotta, Aron, et al., 2007).
+We use a variant of MIRA (Mar- gin Infused Relaxed Algorithm), a relaxed, online max- imum margin training algorithm (Crammer & Singer 2003). As discussed in the paper, We updates the parameter vector with three constraints: (1) the better neighbor must have a higher score by a given margin, (2) the change to should be minimal, and (3) the inferior neighbor must have a score below a user-defined threshold (Culotta, Aron, et al., 2007).
 ```{r, eval=FALSE}
 s1<-NULL
 s2<-NULL
