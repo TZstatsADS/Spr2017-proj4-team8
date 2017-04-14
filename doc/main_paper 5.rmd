@@ -69,7 +69,7 @@ sco<-NULL
 neighbor<-matrix(NA, nrow = length(label),ncol = 100)
 best<-matrix(NA, nrow = length(label), ncol = 2)
 
-errordriven<-function(result_hclust){
+errordriven<-function(h){
 for (m in 1:(M-2)){
    k<-K[m]
      result_hclust <- cutree(h,k)
@@ -127,13 +127,13 @@ lamda<-rep(1,dim(dtm_train_tfidf)[2])
 margin<-0.01
 tao<--30
 
-LAMDA <- matrix (NA,nrow = length(lamda),ncol = 100)
+LAMDA <- matrix (NA,nrow = length(lamda),ncol = 2)
 LAMDA[,1] <- lamda
 
 for (p in 1:100){
 
 # The feature matrix after weighed by parameters
-L<- rep(lamda[p],each=dim(dtm_train_tfidf)[1])
+L<- rep(LAMDA[p],each=dim(dtm_train_tfidf)[1])
 L<- matrix(L,nrow = dim(dtm_train_tfidf)[1], ncol = dim(dtm_train_tfidf)[2])
 dtm_train_tfidf<-dtm_train_tfidf*L 
 docsdissim <- cosSparse(t(dtm_train_tfidf))
@@ -144,29 +144,46 @@ colnames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
 h <- hclust(as.dist(docsdissim), method = "ward.D")
 
 # Drive the error
-best<-errordriven(result_hclust)
+best<-errordriven(h)
 
 # Update the parameters
-fr <- function(x){
-  sum((x-lamda[p])^2)
-}
-
 f1<-UpdateMatrix(best[,1])
 f2<-UpdateMatrix(best[,2])
 f3<-f1-f2
 u1<-rbind(f3,-f2)
 c1<-c(margin,tao)
-optim<-constrOptim(lamda[p],fr,grad = NULL, ui = u1,ci = c1)
-lamda[p+1]<-optim$par
+
+fr <- function(x){
+  sum((x-LAMDA[p])^2)
+}
+
+optim<-constrOptim(LAMDA[p],fr,grad = NULL, ui = u1,ci = c1)
+lamda<-optim$par
+LAMDA<-cbind(LAMDA,lamda)
 
 # Converage
-if (sum((lamda[p+1]-lamda[p])^2)<0.1)
+if (sum((LAMDA[p+1]-LAMDA[p])^2)<0.1)
 {
   break
 }
-
 }
 
+```
+
+Result cluster
+```{r}
+lamdaoptim<-LAMDA[,dim(LAMDA)[2]]
+L<- rep(lamdaoptim,each=dim(dtm_train_tfidf)[1])
+L<- matrix(L,nrow = dim(dtm_train_tfidf)[1], ncol = dim(dtm_train_tfidf)[2])
+
+dtm_train_tfidf<-dtm_train_tfidf*L 
+docsdissim <- cosSparse(t(dtm_train_tfidf))
+rownames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
+colnames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
+
+h <- hclust(as.dist(docsdissim), method = "ward.D")
+
+result_hclust <- cutree(h,k)
 ```
 
 Other data we use
