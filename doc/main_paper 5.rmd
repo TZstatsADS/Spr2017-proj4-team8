@@ -1,15 +1,24 @@
-l---
-title: "Project 4 data cleaning"
+---
+title: "Project 4 - Paper 5: C/E/Mr"
+author: Team 8
+date: "4/14/2017"
 output: html_notebook
 ---
+
+In this notebook, we focus on the method mentioned in the paper written by Song, Yang, et al. for the name disambiguation issue. We adopted Clusterwise Score Function, and used Error-Driven Online Training to generate examples and Ranking MIRA as the loss function.
+
+## Step 0: Load the packages, specify directories
 ```{r}
+#setwd("~/Project4_WhoIsWho/doc")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(text2vec, dplyr, qlcMatrix, kernlab, knitr)
 library(stringr)
 library(qlcMatrix)
 ```
 
-Data
+## Step 1: Data & Feature Preparation
+
+The features used for our experiments are as follows. We use the attributes of co-authors, paper titles and journals provided in the nameset folder. After comparing different similarity measures, we use TF-IDF measure to calculate similarity. Before that, we construct a document-term matrix (DTM).
 ```{r}
 load("../output/dtm_list.RData")
 load("../output/tfidf_list.RData")
@@ -17,7 +26,10 @@ dtm_train_tfidf<-tfidf_list[[1]]$tfidf
 label<-rownames(as.data.frame(as.matrix(dtm_list[[1]]$dtm)))
 ```
 
-Cluster
+## Step 2: Algorithm
+
+### Clustering
+We use agglomerative clustering method.
 ```{r}
 lamda<-vector(length=dim(dtm_train_tfidf)[2])
 
@@ -34,7 +46,8 @@ colnames(docsdissim) <- c(1:nrow(dtm_train_tfidf))
 h <- hclust(as.dist(docsdissim), method = "ward.D")
 ```
 
-Score function
+### Clusterwise Scoring Function
+We define the clusterwise scoring function as the sum of scores for each cluster.
 ```{r}
 s<-NULL
 Score<-function(lamda,result_hclust){
@@ -58,7 +71,8 @@ Score<-function(lamda,result_hclust){
 }
 ```
 
-Error driven
+### CreateExamplesFromErrors by Error-driven Online Training
+We employ a sampling scheme that selects training examples based on errors that occur during inference on the labeled training data (Culotta, Aron, et al., 2007).
 ```{r}
 source('../lib/evaluation_measures.R')
 count<-1:length(label)
@@ -92,7 +106,8 @@ for (m in 1:(M-2)){
 }
 ```
 
-Update parameters
+### UpdateParameters by Ranking MIRA
+We use a variant of MIRA (Mar- gin Infused Relaxed Algorithm), a relaxed, online max- imum margin training algorithm (Crammer & Singer 2003). As discussed in the paper, We updates the parameter vector with three constraints: (1) the better neighbor must have a higher score by a given margin, (2) the change to Λ should be minimal, and (3) the inferior neighbor must have a score below a user-defined threshold (Culotta, Aron, et al., 2007).
 ```{r}
 s1<-NULL
 s2<-NULL
@@ -121,7 +136,7 @@ fr <- function(x){
 }
 ```
 
-Whole algorithm
+### Whole Algorithm
 ```{r}
 lamda<-rep(1,dim(dtm_train_tfidf)[2])
 margin<-0.01
@@ -170,7 +185,7 @@ if (sum((LAMDA[p+1]-LAMDA[p])^2)<0.1)
 
 ```
 
-Result cluster
+### Result Cluster
 ```{r}
 lamdaoptim<-LAMDA[,dim(LAMDA)[2]]
 L<- rep(lamdaoptim,each=dim(dtm_train_tfidf)[1])
@@ -191,7 +206,17 @@ Other data we use
 # After we calculate the parameters, we can employ it on the other 9 files and can average the paramters. Then we can test on the other 4 files.
 ```
 
-Evaluation
+## Step 3: Evaluation
+
+For evaluation, we use the standard "Precision", "Recall","F1", and "Accuracy" defined as follows.
+$$
+\begin{aligned}
+\mbox{Precision} &=\frac{a}{a+b}\\
+\mbox{Recall}&=\frac{a}{a+c}\\
+\mbox{F1} &=\frac{2\times\mbox{Precision}\times\mbox{Recall}}{\mbox{Precision}+\mbox{Recall}}\\
+\mbox{Accuracy}&=\frac{a+d}{a+b+c+d}
+\end{aligned}
+$$
 ```{r}
 source('../lib/evaluation_measures.R')
 matching_matrix_hclust <- matching_matrix(label,result_hclust)
