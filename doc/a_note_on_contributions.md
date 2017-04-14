@@ -10,6 +10,7 @@ Pan, Yijia
 Sun, Xiaowo
 
 Summary: In this project, we implemented two papers to disambiguate author names. 
+
 Ken, Yue and Terry implemented paper 4. Ken cleaned the data and generated dtm for further analysis. Yue carried out the LDA model and model evaluation. Terry designed and implemented the clustering method. 
 
 Yijia and Xiaowo implemented paper 5. 
