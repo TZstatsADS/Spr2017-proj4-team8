@@ -1,7 +1,7 @@
 ---
-title: "Project 4 - Example Main Script"
-author: "Jing Wu, Tian Zheng"
-date: "3/22/2017"
+title: "Project 4 - Paper 4"
+author: "Ken Chew, Terry Li, Yue Jin"
+date: "04/12/2017"
 output: pdf_document
 ---
 
@@ -9,7 +9,7 @@ This file is currently a template for implementing one of the suggested papers, 
 
 ## Step 0: Load the packages, specify directories
 
-```{r}
+```{r eval=FALSE}
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(text2vec, dplyr, qlcMatrix, kernlab, knitr)
 
@@ -22,7 +22,7 @@ setwd("~/Dropbox/Project4_WhoIsWho/doc")
 
 For each record in the dataset, there are some information we want to extract and store them in a regular form: canonical author id, coauthors, paper title, publication venue title. You may need to find regular matched in the input string vectors by using regex in R. Here is a tutorial for regular expression in R, which might help you <https://rstudio-pubs-static.s3.amazonaws.com/74603_76cd14d5983f47408fdf0b323550b846.html>
 
-```{r}
+```{r eval=FALSE}
 # AKumar <- data.frame(scan("../data/nameset/AKumar.txt",
 #                           what = list(Coauthor = "", Paper = "", Journal = ""),
 #                           sep=">", quiet=TRUE), stringsAsFactors=FALSE)
@@ -44,7 +44,7 @@ For each record in the dataset, there are some information we want to extract an
 
 ## Step 2: Feature design
 
-Following the section 3.1 in the paper, we want to use paper titles to design features for citations. As the notation used in the paper, we want to find a $m$-dimensional citation vector $\alpha_i$ for each citation $i$, $i=1,...,n$. In this dataset, $n=$ `r nrow(AKumar)`. We study "TF-IDF" (term frequency-inverse document frequency) as suggested in the paper.
+Following the section 3.1 in the paper, we want to use paper titles to design features for citations. 
 
 TF-IDF is a numerical statistics that is intended to reflect how important a word is to a document in a collection or corpus. It is often used as a weighting factor in information retrieval, text mining, and user modeling. The TF-IDF value increases proportionally to the number of times a word appears in the document, but is offset by the frequency of the word in the corpus, which helps to adjust for the fact that some words appear more frequently in general.
 
@@ -59,22 +59,9 @@ $$
 To compute TF-IDF, we first need to construct a document-term matrix (DTM). In other words, the first step is to vectorize text by creating a map from words to a vector space. There are some good packages you could use for text mining (probably you have tried during first project, you don't need to follow my code if you are familiar with other package), e.g. *text2vec, tm, tidytext*. Here, we are going to use *text2vec* package. A good tutorial can be found here, <https://cran.r-project.org/web/packages/text2vec/vignettes/text-vectorization.html>.
 
 Let’s first create a vocabulary-based DTM. Here we collect unique terms from all documents and mark each of them with a unique ID using the  `create_vocabulary()` function. We use an iterator to create the vocabulary.
-```{r}
-# it_train <- itoken(AKumar$Paper, 
-#              preprocessor = tolower, 
-#              tokenizer = word_tokenizer,
-#              ids = AKumar$PaperID,
-#              # turn off progressbar because it won't look nice in rmd
-#              progressbar = FALSE)
-# vocab <- create_vocabulary(it_train, stopwords = c("a", "an", "the", "in", "on",
-#                                                    "at", "of", "above", "under"))
-# 
-# vocab
-```
-
 
 Running LDA on dtm
-```{r}
+```{r eval=FALSE}
 library("topicmodels")
 load("../output/dtm_list.RData")
 
@@ -153,26 +140,12 @@ save(phi_combined,file="../output/phi_combined.RData")
 ```
 
 
-Here, we remove pre-defined stopwords, the words like “a”, “the”, “in”, “I”, “you”, “on”, etc, which do not provide much useful information. 
 
-Now that we have a vocabulary list, we can construct a document-term matrix.
-```{r}
-vectorizer <- vocab_vectorizer(vocab2)
-dtm_train <- create_dtm(it_train2, vectorizer)
-```
-
-Now we have DTM and can check its dimensions.
-```{r}
-dim(dtm_train)
-```
-
-
-## Step 3: Clustering
-# i think there's an error, right now in the last column of the theta_combined, there there are only only variations of YChen
+ i think there's an error, right now in the last column of the theta_combined, there there are only only variations of YChen
 so when im filtering, it creates a problem. Im not sure where the other names went. 
 There are 8000+ rows which is right, but the labeling is off.
 @keng
-```{r}
+```{r eval=FALSE}
 load("../output/theta_combined.RData")
 load("../output/theta_list.RData")
 
@@ -219,7 +192,7 @@ save(cluster.list.separate,file="../output/cluster_list_separate.RData")
 
 To evaluate the performance of the method, it is required to calculate the degree of agreement between a set of system-output partitions and a set of true partitions. In general, the agreement between two partitioins is measured for a pair of entities within partitions. The basic unit for which pair-wise agreement is assessed is a pair of entities (authors in our case) which belongs to one of the four cells in the following table (Kang et at.(2009)):
 
-\includegraphics[width=500pt]{matching_matrix.png}
+
 
 Let $M$ be the set of machine-generated clusters, and $G$ the set of gold standard clusters. Then. in the table, for example, $a$ is the number of pairs of entities that are assigned to the same cluster in each of $M$ and $G$. Hence, $a$ and $d$ are interpreted as agreements, and $b$ and $c$ disagreements. When the table is considered as a confusion matrix for a two-class prediction problem, the standard "Precision", "Recall","F1", and "Accuracy" are defined as follows.
 
@@ -232,7 +205,7 @@ $$
 \end{aligned}
 $$
 
-```{r}
+```{r eval=FALSE}
 source('../lib/evaluation_measures.R')
 load("../output/cluster_list_separate.RData")
 load("../output/cluster_list_combined.RData")
@@ -272,13 +245,22 @@ names(performance.combined)<-c("precision","recall","f1","accuracy" )
 save(performance.combined,file="../output/performance_combined_df.RData")
 
 
-performance_sclust<-colMeans(performance.separate)
-performance_hclust<-colMeans(performance.combined)
-compare_df <- data.frame(method=c("sClust","hClust"),
-                         precision=c(performance_sclust$precision, performance_hclust$precision),
-                         recall=c(performance_sclust$recall, performance_hclust$recall),
-                         f1=c(performance_sclust$f1, performance_hclust$f1),
-                         accuracy=c(performance_sclust$accuracy, performance_hclust$accuracy))
-kable(compare_df,caption="Comparision of performance for two clustering methods",digits = 2)
+perf_s<-colMeans(performance.separate)
+perf_c<-colMeans(performance.combined)
+compare_df <- data.frame(perf_s,perf_c)
+names(compare_df)<-c("Separate","Combined")
+kable(compare_df,caption="Comparision of performance for two LDA methods",digits = 2)
+```
+
+```{r echo=FALSE}
+library(knitr)
+load("../output/performance_combined_df.RData")
+load("../output/performance_separate_df.RData")
+perf_s<-colMeans(performance.separate)
+perf_c<-colMeans(performance.combined)
+compare_df <- data.frame(perf_s,perf_c)
+names(compare_df)<-c("Separate","Combined")
+kable(compare_df,caption="Comparision of performance for two LDA methods",digits = 2)
+
 ```
 
