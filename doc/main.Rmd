@@ -214,6 +214,10 @@ $$
 
 ```{r}
 source('../lib/evaluation_measures.R')
+name_list<-unlist(strsplit(row.names(theta_combined),"_"))
+name_ID <- data.frame(matrix(name_list, ncol=3, byrow=T)[,1:2])
+names(name_ID)<-c("Name", "ID")
+
 matching_matrix_hclust <- matching_matrix(AKumar$AuthorID,result_hclust)
 performance_hclust <- performance_statistics(matching_matrix_hclust)
 matching_matrix_sclust <- matching_matrix(AKumar$AuthorID,result_sclust)
