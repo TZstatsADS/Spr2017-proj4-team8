@@ -1,6 +1,6 @@
 ---
 title: "Project 4 - Paper 5: C/E/Mr"
-author: Team 8
+author: Team 8 - Yijia Pan, Xiaowo Sun
 date: "4/14/2017"
 output: html_notebook
 ---
@@ -18,7 +18,7 @@ library(qlcMatrix)
 
 ## Step 1: Data & Feature Preparation
 
-The features used for our experiments are as follows. We use the attributes of co-authors, paper titles and journals provided in the nameset folder. After comparing different similarity measures, we use TF-IDF measure to calculate similarity. Before that, we construct a document-term matrix (DTM).
+The features used for our experiments are as follows. We use the attributes of co-authors, paper titles and journals provided in the nameset folder. After comparing different similarity measures, we use TF-IDF measure to calculate similarity. Before that, we construct a document-term matrix (DTM). Here we use the data processed by our teammates.
 ```{r}
 load("../output/dtm_list.RData")
 load("../output/tfidf_list.RData")
@@ -207,6 +207,8 @@ Other data we use
 ```
 
 ## Step 3: Evaluation
+
+To evaluate the performance of the method, it is required to calculate the degree of agreement between a set of system-output partitions and a set of true partitions. In general, the agreement between two partitioins is measured for a pair of entities within partitions. The basic unit for which pair-wise agreement is assessed is a pair of entities (authors in our case) which belongs to one of the four cells in the following table (Kang et at.(2009))
 
 For evaluation, we use the standard "Precision", "Recall","F1", and "Accuracy" defined as follows.
 $$
