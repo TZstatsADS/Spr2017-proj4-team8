@@ -232,20 +232,51 @@ $$
 
 ```{r}
 source('../lib/evaluation_measures.R')
+load("../output/cluster_list_separate.RData")
+load("../output/cluster_list_combined.RData")
 name_list<-unlist(strsplit(row.names(theta_combined),"_"))
 name_ID <- data.frame(matrix(name_list, ncol=3, byrow=T)[,1:2])
-names(name_ID)<-c("Name", "ID")
+names(name_ID)<-c("Name", "AuthorID")
 
-matching_matrix_hclust <- matching_matrix(AKumar$AuthorID,result_hclust)
-performance_hclust <- performance_statistics(matching_matrix_hclust)
-matching_matrix_sclust <- matching_matrix(AKumar$AuthorID,result_sclust)
-performance_sclust <- performance_statistics(matching_matrix_sclust)
+performance.list.separate=list()
+for (i in 1:length(theta_list)){
+  G<-name_ID$AuthorID[name_ID$Name==query.list[i]]
+  M<-cluster.list.separate[[i]]
+  matching_matrix_separate <- matching_matrix(G,M)
+  performance <- performance_statistics(matching_matrix_separate)
+  performance.list.separate[[i]]<-performance 
+}
+
+performance.separate <- data.frame(matrix(unlist(performance.list.separate), ncol=3, byrow=T))
+
+save(performance.list.separate,file="../output/performance.list.separate.RData")
+performance.separate<-data.frame(matrix(unlist(performance.list.separate),ncol=4,byrow=TRUE))
+names(performance.separate)<-c("precision","recall","f1","accuracy" )
+save(performance.separate,file="../output/performance_separate_df.RData")
+
+
+performance.list.combined=list()
+for (i in 1:length(theta_list)){
+  G<-name_ID$AuthorID[name_ID$Name==query.list[i]]
+  M<-cluster.list.combined[[i]]
+  matching_matrix_combined <- matching_matrix(G,M)
+  performance <- performance_statistics(matching_matrix_combined)
+  performance.list.combined[[i]]<-performance 
+}
+
+save(performance.list.combined,file="../output/performance.list.combined.RData")
+performance.combined<-data.frame(matrix(unlist(performance.list.combined),ncol=4,byrow=TRUE))
+names(performance.combined)<-c("precision","recall","f1","accuracy" )
+save(performance.combined,file="../output/performance_combined_df.RData")
+
+
+performance_sclust<-colMeans(performance.separate)
+performance_hclust<-colMeans(performance.combined)
 compare_df <- data.frame(method=c("sClust","hClust"),
                          precision=c(performance_sclust$precision, performance_hclust$precision),
                          recall=c(performance_sclust$recall, performance_hclust$recall),
                          f1=c(performance_sclust$f1, performance_hclust$f1),
-                         accuracy=c(performance_sclust$accuracy, performance_hclust$accuracy),
-                         time=c(time_sclust,time_hclust))
+                         accuracy=c(performance_sclust$accuracy, performance_hclust$accuracy))
 kable(compare_df,caption="Comparision of performance for two clustering methods",digits = 2)
 ```
 
